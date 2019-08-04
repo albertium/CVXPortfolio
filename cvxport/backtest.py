@@ -62,14 +62,18 @@ class BackTester:
         print('\nRunning:')
         T = len(self.data)
         n_asset = self.data.shape[1]
+        timestamps = self.data.index
         result = ResultSet(self.data)
         for strategy in self.strategies:
             weights = np.zeros((T, n_asset))
             for idx in range(strategy.lookback + 1, T):
-                current_inputs = {k.alias: inputs[k.name][idx - 1] for k in strategy.indicators}
-                current_inputs['last_weights'] = weights[idx - 1]
-                current_inputs['n_asset'] = n_asset
-                weights[idx] = strategy.generate_weights(current_inputs)
+                if strategy.timer.is_up(timestamps[idx]):
+                    current_inputs = {k.alias: inputs[k.name][idx - 1] for k in strategy.indicators}
+                    current_inputs['last_weights'] = weights[idx - 1]
+                    current_inputs['n_asset'] = n_asset
+                    weights[idx] = strategy.generate_weights(current_inputs)
+                else:
+                    weights[idx] = weights[idx - 1]
 
             result.add_performance(strategy.name, strategy.lookback, weights)
             print('\t%-20s: Done' % strategy.name)
