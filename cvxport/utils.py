@@ -61,3 +61,10 @@ def plot_lines(df):
 
     fig.update_layout(showlegend=True, xaxis={'hoverformat': '%d%b%Y'}, yaxis={'hoverformat': '.1%'})
     fig.show()
+
+
+def pretty_print(df: pd.DataFrame, formats):
+    new = pd.DataFrame(index=df.index)
+    for col, fmt in zip(df.columns, formats):
+        new[col] = df[col].apply(lambda x: fmt.format(x))
+    print(new)

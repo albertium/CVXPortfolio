@@ -1,5 +1,4 @@
-
-import utils
+from cvxport import utils
 import riskparity
 
 
