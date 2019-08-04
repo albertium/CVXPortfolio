@@ -1,0 +1,11 @@
+[Default]
+data_root = C:/Users/Albert/Resilio Sync/FXBootcamp/RiskPremia
+
+[Data Map]
+eq_us = VFINX,VTI
+eq_exus = XMSC-F,VEA
+eq_em = MXEA-F,VWO
+tn_us = VFITX,IEF
+tb_us = VUSTX,TLT
+bond_em = PREMX,EMB
+reit = VGSIX,VNQI
