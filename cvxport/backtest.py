@@ -31,7 +31,9 @@ class ResultSet:
         self.stats = self.stats.append(pd.Series([sharpe, ret, sd, dd], index=self.stats.columns, name=name))
 
     def plot(self):
-        utils.plot_lines(self.performances.iloc[max(self.lookbacks.values()):])
+        chopped = self.returns.iloc[max(self.lookbacks.values()):].copy()
+        chopped.iloc[0] = 0
+        utils.plot_lines((chopped + 1).cumprod())
 
     def show(self):
         utils.pretty_print(self.stats, ['{:.2f}', '{:.2%}', '{:.2%}', '{:.2%}'])
@@ -47,10 +49,11 @@ class ResultSet:
 
 
 class BackTester:
-    def __init__(self, data: pd.DataFrame, strategies: Iterable[Strategy]):
+    def __init__(self, data: pd.DataFrame, strategies: Iterable[Strategy], config=None):
         self.data = data
         self.strategies = strategies
         self.indicators = list(set(sum([p.indicators for p in strategies], [])))
+        self.config = {'leverage': 1} if config is None else config
 
     def run(self):
         # prepare indicators
@@ -61,19 +64,32 @@ class BackTester:
         # main loop
         print('\nRunning:')
         T = len(self.data)
-        n_asset = self.data.shape[1]
+        n_assets = self.data.shape[1]
+        allowed_leverage = self.config['leverage'] + 1e-4
         timestamps = self.data.index
         result = ResultSet(self.data)
         for strategy in self.strategies:
-            weights = np.zeros((T, n_asset))
+            weights = np.zeros((T, n_assets))
             for idx in range(strategy.lookback + 1, T):
                 if strategy.timer.is_up(timestamps[idx]):
                     current_inputs = {k.alias: inputs[k.name][idx - 1] for k in strategy.indicators}
                     current_inputs['last_weights'] = weights[idx - 1]
-                    current_inputs['n_asset'] = n_asset
-                    weights[idx] = strategy.generate_weights(current_inputs)
+                    current_inputs['n_assets'] = n_assets
+                    for _ in range(strategy.rep):
+                        weights[idx] += strategy.generate_weights(current_inputs)
+                    if strategy.rep > 1:
+                        weights[idx] /= strategy.rep
                 else:
                     weights[idx] = weights[idx - 1]
+
+                # check weights
+                total_weight = np.sum(weights[idx])
+                leverage = np.sum(np.abs(weights[idx]))
+                if abs(total_weight - 1) > 1e-4:
+                    raise RuntimeError(f'weights sum to {total_weight: .5f}')
+
+                if leverage > allowed_leverage:
+                    raise RuntimeError(f'leverage is {leverage: .5f}')
 
             result.add_performance(strategy.name, strategy.lookback, weights)
             print('\t%-20s: Done' % strategy.name)

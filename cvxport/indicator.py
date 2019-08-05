@@ -21,9 +21,28 @@ class Indicator(abc.ABC):
         return hash(self.name)
 
 
-class VolatilityIndicator(Indicator):
+class RollingVolatility(Indicator):
     def __init__(self, name, lookback=90):
-        super(VolatilityIndicator, self).__init__('volatility=%d' % lookback, name, lookback)
+        super(RollingVolatility, self).__init__('roll_vol=%d' % lookback, alias=name, lookback=lookback)
 
     def process(self, data: pd.DataFrame):
         return data.rolling(window=self.lookback).std().to_numpy()
+
+
+class RollingCovariance(Indicator):
+    def __init__(self, name, lookback=90):
+        super(RollingCovariance, self).__init__(f'roll_cov={lookback}', alias=name, lookback=lookback)
+
+    def process(self, data: pd.DataFrame) -> np.ndarray:
+        n_cols = data.shape[1]
+        return data.rolling(window=self.lookback).cov().values.reshape(-1, n_cols, n_cols)
+
+
+class LongTermDrift(Indicator):
+    def __init__(self, name, lookback=90):
+        super(LongTermDrift, self).__init__('con_drift', alias=name, lookback=lookback)
+
+    def process(self, data: pd.DataFrame) -> np.ndarray:
+        means = data.cumsum(axis=0).div(range(data.shape[0]), axis=0) # type: pd.DataFrame
+        means.iloc[:self.lookback + 1] = np.nan
+        return means.to_numpy()
