@@ -14,12 +14,14 @@ class ResultSet:
         self.returns = pd.DataFrame(index=data.index)
         self.performances = pd.DataFrame(index=data.index)
         self.stats = pd.DataFrame(columns=['Sharpe', 'Return', 'SD', 'maxDD'])
+        self.risk_contributions = {}
 
     def add_performance(self, name, lookback, weights):
         self.all_weights[name] = weights
         self.lookbacks[name] = lookback
         self.returns[name] = np.sum(self.data * weights, axis=1)
         self.performances[name] = (self.returns[name] + 1).cumprod()
+        self.risk_contributions[name] = utils.get_risk_contribution(self.data, weights)
 
         # add statistics
         series = self.performances[name].to_numpy()
@@ -34,6 +36,9 @@ class ResultSet:
         chopped = self.returns.iloc[max(self.lookbacks.values()):].copy()
         chopped.iloc[0] = 0
         utils.plot_lines((chopped + 1).cumprod())
+
+        for name, data in self.risk_contributions.items():
+            utils.plot_area(name, data)
 
     def show(self):
         utils.pretty_print(self.stats, ['{:.2f}', '{:.2%}', '{:.2%}', '{:.2%}'])
@@ -92,7 +97,8 @@ class BackTester:
                 if leverage > allowed_leverage:
                     raise RuntimeError(f'leverage is {leverage: .5f}')
 
-            utils.run_with_status(strategy.name, range(strategy.lookback + 1, T), T - strategy.lookback, run_strategy)
+            utils.run_with_status(f'{strategy.name} rep={strategy.rep}',
+                                  range(strategy.lookback + 1, T), T - strategy.lookback, run_strategy)
             result.add_performance(strategy.name, strategy.lookback, weights)
 
         print()

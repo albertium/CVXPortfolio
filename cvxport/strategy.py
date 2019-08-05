@@ -93,7 +93,7 @@ class InverseVolatilityStrategy(Strategy):
 
 
 class SimpleRiskParityStrategy(Strategy):
-    def __init__(self, gamma=2, use_mean=False, lookback=90, timer=None, rep=3):
+    def __init__(self, use_mean=False, gamma=2, lookback=90, rep=3):
         self.gamma = gamma
         self.use_mean = use_mean
         inds = [
@@ -122,3 +122,26 @@ class SimpleRiskParityStrategy(Strategy):
 
         problem.solve()
         return weights.value
+
+
+class RiskParityStrategy(Strategy):
+    def __init__(self, lookback=90, rep=1):
+        inds = [
+            idr.RollingCovariance('cov', lookback=lookback)
+        ]
+        timer = IntervalTimer('1w')
+        super(RiskParityStrategy, self).__init__(f'rp={lookback}', inds, timer=timer, rep=rep)
+
+    def generate_weights(self, inputs: Dict):
+        n_assets = inputs['n_assets']
+        b = np.ones((n_assets, 1)) / n_assets
+        cov = inputs['cov']
+
+        weights = cp.Variable(n_assets)
+        L = np.linalg.cholesky(cov)
+        risk = cp.norm(L.T * weights, 2)
+        # risk = cp.quad_form(weights, cov)
+        problem = cp.Problem(cp.Minimize(risk),
+                             [weights >= 0, b.T * cp.log(weights) >= -3])
+        problem.solve()
+        return weights.value / np.sum(weights.value)

@@ -40,17 +40,19 @@ def get_price_returns(assets, config_name='config') -> pd.DataFrame:
     return pd.concat(ts, axis=1, join='inner')
 
 
-def plot_area(dfs: [list, pd.DataFrame]):
+def plot_area(title, dfs: [list, pd.DataFrame]):
     if isinstance(dfs, pd.DataFrame):
         dfs = [dfs]
 
     fig = go.Figure()
 
     for group, df in enumerate(dfs):
+        df = df.div(df.sum(axis=1), axis=0)
         for col in df.columns:
             fig.add_trace(go.Scatter(x=df.index, y=df[col], stackgroup=group, name='%s_%d' % (col, group), opacity=0.5))
 
     fig.update_layout(showlegend=True, xaxis={'hoverformat': '%d%b%Y'}, yaxis={'hoverformat': '.1%'})
+    fig.update_layout(title=go.layout.Title(text=title))
     fig.show()
 
 
@@ -81,3 +83,11 @@ def run_with_status(_msg, _iterable, _size, _func, _update=1):
             print(f'\r[{_idx / _size: 4.0%}] {_msg}', end='', flush=True)
             _lap = _now
     print(f'\r[100%,{time.time() - _start: 5.1f}s] {_msg}')
+
+
+def get_risk_contribution(df: pd.DataFrame, weights, lookback=90):
+    n_col = df.shape[1]
+    cov = df.rolling(window=lookback).cov().values.reshape(-1, n_col, n_col)
+    w = weights.reshape(-1, n_col, 1)
+    marginal_rc = (cov * w).sum(axis=1)
+    return pd.DataFrame(marginal_rc * weights, index=df.index, columns=df.columns).dropna()
