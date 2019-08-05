@@ -70,7 +70,8 @@ class BackTester:
         result = ResultSet(self.data)
         for strategy in self.strategies:
             weights = np.zeros((T, n_assets))
-            for idx in range(strategy.lookback + 1, T):
+
+            def run_strategy(idx):
                 if strategy.timer.is_up(timestamps[idx]):
                     current_inputs = {k.alias: inputs[k.name][idx - 1] for k in strategy.indicators}
                     current_inputs['last_weights'] = weights[idx - 1]
@@ -91,8 +92,8 @@ class BackTester:
                 if leverage > allowed_leverage:
                     raise RuntimeError(f'leverage is {leverage: .5f}')
 
+            utils.run_with_status(strategy.name, range(strategy.lookback + 1, T), T - strategy.lookback, run_strategy)
             result.add_performance(strategy.name, strategy.lookback, weights)
-            print('\t%-20s: Done' % strategy.name)
 
         print()
         return result

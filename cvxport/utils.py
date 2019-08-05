@@ -1,6 +1,6 @@
 
 import pandas as pd
-import matplotlib.pyplot as plt
+import time
 import plotly.graph_objs as go
 import configparser
 
@@ -68,3 +68,16 @@ def pretty_print(df: pd.DataFrame, formats):
     for col, fmt in zip(df.columns, formats):
         new[col] = df[col].apply(lambda x: fmt.format(x))
     print(new)
+
+
+def run_with_status(_msg, _iterable, _size, _func, _update=1):
+    _start = time.time()
+    _lap = _start
+    print(f'[  0%] {_msg}', end='')
+    for _idx, _data in enumerate(_iterable):
+        _func(_data)
+        _now = time.time()
+        if _now - _lap > _update:
+            print(f'\r[{_idx / _size: 4.0%}] {_msg}', end='', flush=True)
+            _lap = _now
+    print(f'\r[100%,{time.time() - _start: 5.1f}s] {_msg}')
