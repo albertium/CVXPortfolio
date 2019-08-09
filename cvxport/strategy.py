@@ -92,7 +92,7 @@ class InverseVolatilityStrategy(Strategy):
         return inv / np.sum(inv)
 
 
-class SimpleRiskParityStrategy(Strategy):
+class MeanVarianceStrategy(Strategy):
     def __init__(self, use_mean=False, gamma=2, lookback=90, rep=3):
         self.gamma = gamma
         self.use_mean = use_mean
@@ -103,7 +103,7 @@ class SimpleRiskParityStrategy(Strategy):
 
         timer = IntervalTimer('1w')
         name = f'srp={lookback} gamma={gamma}' if use_mean else f'srp={lookback} no_mean'
-        super(SimpleRiskParityStrategy, self).__init__(name, inds, timer=timer, rep=rep)
+        super(MeanVarianceStrategy, self).__init__(name, inds, timer=timer, rep=rep)
 
     def generate_weights(self, inputs: Dict):
         n_assets = inputs['n_assets']
@@ -124,24 +124,74 @@ class SimpleRiskParityStrategy(Strategy):
         return weights.value
 
 
+class SimpleRiskParityStrategy(Strategy):
+    def __init__(self, lookback=90, rep=1):
+        inds = [
+            idr.RollingCovariance('cov', lookback=lookback)
+        ]
+        timer = IntervalTimer('1w')
+        super(SimpleRiskParityStrategy, self).__init__(f'srp={lookback}', inds, timer=timer, rep=rep)
+
+    def generate_weights(self, inputs: Dict):
+        n_assets = inputs['n_assets']
+        cov = inputs['cov']
+
+        weights = cp.Variable(n_assets)
+        # L = np.linalg.cholesky(cov)
+        # risk = cp.norm(L.T * weights, 2)
+        risk = 0.5 * cp.quad_form(weights, cov) - cp.sum(cp.log(weights)) / n_assets
+        problem = cp.Problem(cp.Minimize(risk), [weights >= 0])
+        problem.solve()
+        return weights.value / np.sum(weights.value)
+
+
 class RiskParityStrategy(Strategy):
     def __init__(self, lookback=90, rep=1):
         inds = [
             idr.RollingCovariance('cov', lookback=lookback)
         ]
         timer = IntervalTimer('1w')
+        self.problem = None
+        self.Q = None
+        self.q = None
+        self.w = None
+
         super(RiskParityStrategy, self).__init__(f'rp={lookback}', inds, timer=timer, rep=rep)
+
+    def set_up_problem(self, n_assets):
+        self.Q = cp.Parameter((n_assets, n_assets), PSD=True)
+        self.q = cp.Parameter((n_assets, 1))
+        self.w = cp.Variable((n_assets, 1))
+        risk = cp.quad_form(self.w, self.Q) + self.w.T * self.q
+        self.problem = cp.Problem(cp.Minimize(risk), [cp.sum(self.w) == 1, self.w >= 0])
 
     def generate_weights(self, inputs: Dict):
         n_assets = inputs['n_assets']
-        b = np.ones((n_assets, 1)) / n_assets
         cov = inputs['cov']
 
-        weights = cp.Variable(n_assets)
-        L = np.linalg.cholesky(cov)
-        risk = cp.norm(L.T * weights, 2)
-        # risk = cp.quad_form(weights, cov)
-        problem = cp.Problem(cp.Minimize(risk),
-                             [weights >= 0, b.T * cp.log(weights) >= -3])
-        problem.solve()
-        return weights.value / np.sum(weights.value)
+        if self.problem is None:
+            self.set_up_problem(n_assets)
+
+        if self.w.value is None:
+            wk = np.ones((n_assets, 1)) / n_assets
+        else:
+            wk = self.w.value
+
+        for i in range(20):
+            var = np.matmul(wk.T, np.matmul(cov, wk))
+            rc = wk * np.matmul(cov, wk)
+            g = rc / var - 1 / n_assets
+            A = (wk.T * cov + np.diag(np.matmul(cov, wk).flatten())) / var - 2 * rc.T * np.matmul(cov, wk) / var / var
+            Q = 2 * np.matmul(A, A.T) + 0.1 * np.eye(n_assets)
+            q = 2 * np.matmul(A, g) - np.matmul(Q, wk)
+
+            self.Q.value = Q
+            self.q.value = q
+            self.problem.solve()
+
+            if np.linalg.norm(wk - self.w.value, 1) / min(wk) < 1e-3:
+                break
+
+            wk = self.w.value
+
+        return self.w.value.flatten() / np.sum(self.w.value)

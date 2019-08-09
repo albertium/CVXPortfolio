@@ -32,13 +32,14 @@ class ResultSet:
 
         self.stats = self.stats.append(pd.Series([sharpe, ret, sd, dd], index=self.stats.columns, name=name))
 
-    def plot(self):
+    def plot(self, plot_rc=False):
         chopped = self.returns.iloc[max(self.lookbacks.values()):].copy()
         chopped.iloc[0] = 0
         utils.plot_lines((chopped + 1).cumprod())
 
-        for name, data in self.risk_contributions.items():
-            utils.plot_area(name, data)
+        if plot_rc:
+            for name, data in self.risk_contributions.items():
+                utils.plot_area(name, data)
 
     def show(self):
         utils.pretty_print(self.stats, ['{:.2f}', '{:.2%}', '{:.2%}', '{:.2%}'])

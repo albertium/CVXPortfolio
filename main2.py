@@ -9,12 +9,13 @@ print('Last update: %s' % rets.last_valid_index())
 # strats = [xp.SingleAssetStrategy(name, idx) for idx, name in enumerate(assets)]
 strats = [
     # xp.strategy.InverseVolatilityStrategy(),
-    xp.strategy.RiskParityStrategy(rep=1),
-    # xp.strategy.SimpleRiskParityStrategy(rep=1),
-    xp.strategy.EqualWeightStrategy()
+    xp.strategy.SimpleRiskParityStrategy(),
+    # xp.strategy.RiskParityStrategy(rep=1),
+    # xp.strategy.MeanVarianceStrategy(rep=1),
+    # xp.strategy.EqualWeightStrategy()
 ]
 backtester = xp.BackTester(rets, strats)
 result = backtester.run()
 result.show()
-result.plot()
+result.plot(True)
 
