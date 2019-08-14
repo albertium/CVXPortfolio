@@ -156,7 +156,8 @@ class RiskParityStrategy(Strategy):
         self.q = None
         self.w = None
 
-        super(RiskParityStrategy, self).__init__(f'rp={lookback}', inds, timer=timer, rep=rep)
+        name = f'rp={lookback}'
+        super(RiskParityStrategy, self).__init__(name, inds, timer=timer, rep=rep)
 
     def set_up_problem(self, n_assets):
         self.Q = cp.Parameter((n_assets, n_assets), PSD=True)
@@ -164,6 +165,14 @@ class RiskParityStrategy(Strategy):
         self.w = cp.Variable((n_assets, 1))
         risk = cp.quad_form(self.w, self.Q) + self.w.T * self.q
         self.problem = cp.Problem(cp.Minimize(risk), [cp.sum(self.w) == 1, self.w >= 0])
+
+    @classmethod
+    def initialize_weights(cls, n_assets, cov):
+        w = cp.Variable(n_assets)
+        risk = 0.5 * cp.quad_form(w, cov) - cp.sum(cp.log(w)) / n_assets
+        problem = cp.Problem(cp.Minimize(risk), [w >= 0])
+        problem.solve()
+        return w.value / np.sum(w.value)
 
     def generate_weights(self, inputs: Dict):
         n_assets = inputs['n_assets']
@@ -173,7 +182,7 @@ class RiskParityStrategy(Strategy):
             self.set_up_problem(n_assets)
 
         if self.w.value is None:
-            wk = np.ones((n_assets, 1)) / n_assets
+            wk = self.initialize_weights(n_assets, cov)[:, None]
         else:
             wk = self.w.value
 
