@@ -46,3 +46,15 @@ class LongTermDrift(Indicator):
         means = data.cumsum(axis=0).div(range(data.shape[0]), axis=0) # type: pd.DataFrame
         means.iloc[:self.lookback + 1] = np.nan
         return means.to_numpy()
+
+
+class RateOfReturn(Indicator):
+    def __init__(self, name, lookback=90, standardized=True):
+        self.standardized = standardized
+        super(RateOfReturn, self).__init__(f'roc={lookback}', alias=name, lookback=lookback)
+
+    def process(self, data: pd.DataFrame) -> np.ndarray:
+        ind = (data + 1).cumprod().pct_change(periods=self.lookback).values
+        if self.standardized:
+            return (ind - np.mean(ind, axis=1, keepdims=True)) / np.std(ind, axis=1, keepdims=True)
+        return ind

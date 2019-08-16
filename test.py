@@ -1,9 +1,15 @@
+from multiprocessing.pool import ThreadPool
+import multiprocessing
+import time
+import threading
+from tqdm import tqdm
 
-import pandas_datareader.data as web
-from datetime import datetime
-
-start = datetime(2010, 7, 1)
-end = datetime(2019, 7, 30)
-
-data = web.DataReader('TLT', 'av-daily-adjusted', start, end)
-print(data.head())
+bars = [tqdm(total=10) for i in range(5)]
+for j in range(10):
+    for i in range(5):
+        bars[i].update(j)
+    time.sleep(0.2)
+# bar = tqdm(total=10)
+# for i in range(10):
+#     bar.update(i)
+#     time.sleep(0.1)

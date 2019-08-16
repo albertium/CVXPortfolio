@@ -9,8 +9,9 @@ print('Last update: %s' % rets.last_valid_index())
 # strats = [xp.SingleAssetStrategy(name, idx) for idx, name in enumerate(assets)]
 strats = [
     # xp.strategy.InverseVolatilityStrategy(),
-    # xp.strategy.SimpleRiskParityStrategy(),
-    xp.strategy.RiskParityStrategy(rep=1),
+    xp.strategy.TwoStageRiskParityStrategy(),
+    xp.strategy.SimpleRiskParityStrategy(),
+    # xp.strategy.RiskParityStrategy(rep=1),
     # xp.strategy.MeanVarianceStrategy(rep=1),
     # xp.strategy.EqualWeightStrategy()
 ]

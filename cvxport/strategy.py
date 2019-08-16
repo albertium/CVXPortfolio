@@ -159,7 +159,7 @@ class RiskParityStrategy(Strategy):
         name = f'rp={lookback}'
         super(RiskParityStrategy, self).__init__(name, inds, timer=timer, rep=rep)
 
-    def set_up_problem(self, n_assets):
+    def setup_problem(self, n_assets):
         self.Q = cp.Parameter((n_assets, n_assets), PSD=True)
         self.q = cp.Parameter((n_assets, 1))
         self.w = cp.Variable((n_assets, 1))
@@ -179,7 +179,7 @@ class RiskParityStrategy(Strategy):
         cov = inputs['cov']
 
         if self.problem is None:
-            self.set_up_problem(n_assets)
+            self.setup_problem(n_assets)
 
         if self.w.value is None:
             wk = self.initialize_weights(n_assets, cov)[:, None]
@@ -204,3 +204,60 @@ class RiskParityStrategy(Strategy):
             wk = self.w.value
 
         return self.w.value.flatten() / np.sum(self.w.value)
+
+
+class TwoStageRiskParityStrategy(Strategy):
+    def __init__(self, lookback=90, rep=1):
+        inds = [
+            idr.RollingCovariance('cov', lookback=lookback),
+            idr.RateOfReturn('mom', lookback=lookback)
+        ]
+        timer = IntervalTimer('1w')
+        super(TwoStageRiskParityStrategy, self).__init__(f's2rp={lookback}', inds, timer=timer, rep=rep)
+
+        self.w = None
+        self.cov = None
+        self.risk = None
+
+        self.phi = None
+        self.base_w = None
+        self.X = None
+        self.cov_cc = None
+        self.cov_cb = None
+        self.problem_2nd = None
+
+    def setup_problem(self, n_assets, n_factors):
+        self.w = cp.Variable(n_assets)
+        self.cov = cp.Parameter((n_assets, n_assets), PSD=True)
+        self.risk = 0.5 * cp.quad_form(self.w, self.cov) - cp.sum(cp.log(self.w)) / n_assets
+
+        # 2nd stage problem
+        self.phi = cp.Variable(n_factors)
+        self.X = cp.Parameter((n_assets, n_factors))
+        self.base_w = cp.Parameter(n_assets)
+        self.cov_cc = cp.Parameter((n_factors, n_factors), PSD=True)
+        self.cov_cb = cp.Parameter(n_factors)
+
+        risk = cp.quad_form(self.phi, self.cov_cc) + self.cov_cb @ self.phi + 1e-7 * cp.norm(self.phi, 2)
+        self.problem_2nd = cp.Problem(cp.Minimize(risk), [self.X @ self.phi >= -self.base_w])
+
+    def generate_weights(self, inputs: Dict):
+        n_assets = inputs['n_assets']
+        cov = inputs['cov']
+        X = inputs['mom'][:, None]
+
+        if self.problem_2nd is None:
+            self.setup_problem(n_assets, 1)
+
+        problem = cp.Problem(cp.Minimize(self.risk), [self.w >= 0])
+        self.cov.value = cov
+        problem.solve()
+        w = (self.w.value / np.sum(self.w.value))
+
+        # 2nd stage optimization
+        self.base_w.value = w
+        self.X.value = X
+        self.cov_cc.value = X.T @ cov @ X
+        self.cov_cb.value = X.T @ cov @ w
+        self.problem_2nd.solve()
+        return w + X @ self.phi.value
