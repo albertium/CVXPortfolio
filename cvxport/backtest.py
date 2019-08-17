@@ -1,7 +1,9 @@
 
 import pandas as pd
 import numpy as np
+from multiprocessing import Pool
 from typing import Iterable
+import time
 from . import utils
 from .strategy import Strategy
 
@@ -54,6 +56,14 @@ class ResultSet:
         return dd
 
 
+def task(_args):
+    _start = time.time()
+    _strategy, _data, _inputs, _max_lev = _args
+    weights = _strategy.run(_data, _inputs, _max_lev)
+    print(f'{_strategy.name} finished [{time.time() - _start: 5.1f}s]')
+    return _strategy.name, _strategy.lookback, weights
+
+
 class BackTester:
     def __init__(self, data: pd.DataFrame, strategies: Iterable[Strategy], config=None):
         self.data = data
@@ -68,39 +78,23 @@ class BackTester:
             inputs[indicator.name] = indicator.process(self.data)
 
         # main loop
-        print('\nRunning:')
-        T = len(self.data)
-        n_assets = self.data.shape[1]
-        allowed_leverage = self.config['leverage'] + 1e-4
-        timestamps = self.data.index
+        print('\nRunning')
+        max_leverage = self.config['leverage'] + 1e-4
         result = ResultSet(self.data)
-        for strategy in self.strategies:
-            weights = np.zeros((T, n_assets))
 
-            def run_strategy(idx):
-                if strategy.timer.is_up(timestamps[idx]):
-                    current_inputs = {k.alias: inputs[k.name][idx - 1] for k in strategy.indicators}
-                    current_inputs['last_weights'] = weights[idx - 1]
-                    current_inputs['n_assets'] = n_assets
-                    for _ in range(strategy.rep):
-                        weights[idx] += strategy.generate_weights(current_inputs)
-                    if strategy.rep > 1:
-                        weights[idx] /= strategy.rep
-                else:
-                    weights[idx] = weights[idx - 1]
+        batches = [[x, self.data, inputs, max_leverage] for x in self.strategies]
+        with Pool(processes=3) as p:
+            result_all = p.map(task, batches)
 
-                # check weights
-                total_weight = np.sum(weights[idx])
-                leverage = np.sum(np.abs(weights[idx]))
-                if abs(total_weight - 1) > 1e-4:
-                    raise RuntimeError(f'weights sum to {total_weight: .5f}')
+        for res in result_all:
+            name, lb, wgts = res
+            result.add_performance(name, lb, wgts)
 
-                if leverage > allowed_leverage:
-                    raise RuntimeError(f'leverage is {leverage: .5f}')
-
-            utils.run_with_status(f'{strategy.name} rep={strategy.rep}',
-                                  range(strategy.lookback + 1, T), T - strategy.lookback, run_strategy)
-            result.add_performance(strategy.name, strategy.lookback, weights)
+        # for strategy in self.strategies:
+        #     print(f'{strategy.name}: ', end='')
+        #     weights = strategy.run(self.data, inputs, max_leverage)
+        #     result.add_performance(strategy.name, strategy.lookback, weights)
+        #     print('done')
 
         print()
         return result

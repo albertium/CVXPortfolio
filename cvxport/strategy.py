@@ -47,16 +47,40 @@ class IntervalTimer(Timer):
 
 
 class Strategy(abc.ABC):
-    def __init__(self, base_name, indicators: Iterable[Indicator] = None, timer: Timer = None, rep=1):
+    def __init__(self, base_name, indicators: Iterable[Indicator] = None, timer: Timer = None):
         self.lookback = 0 if indicators is None else max([x.lookback for x in indicators])
         self.indicators = indicators if indicators is not None else []
         self.timer = IntervalTimer('1b') if timer is None else timer
         self.name = f'{base_name} freq={self.timer.freq}'
-        self.rep = rep
 
     @abc.abstractmethod
     def generate_weights(self, inputs: Dict):
         pass
+
+    def run(self, data: pd.DataFrame, inputs: Dict, max_leverage):
+        T, n_assets = data.shape
+        timestamps = data.index
+        weights = np.zeros((T, n_assets))
+
+        for idx in range(self.lookback + 1, T):
+            if self.timer.is_up(timestamps[idx]):
+                current_inputs = {k.alias: inputs[k.name][idx - 1] for k in self.indicators}
+                current_inputs['last_weights'] = weights[idx - 1]
+                current_inputs['n_assets'] = n_assets
+                weights[idx] = self.generate_weights(current_inputs)
+            else:
+                weights[idx] = weights[idx - 1]
+
+            # check weights
+            total_weight = np.sum(weights[idx])
+            leverage = np.sum(np.abs(weights[idx]))
+            if abs(total_weight - 1) > 1e-4:
+                raise RuntimeError(f'weights sum to {total_weight: .5f}')
+
+            if leverage > max_leverage:
+                raise RuntimeError(f'leverage is {leverage: .5f}')
+
+        return weights
 
     def __str__(self):
         return f'<STRATEGY> {self.name}'
@@ -103,7 +127,7 @@ class MeanVarianceStrategy(Strategy):
 
         timer = IntervalTimer('1w')
         name = f'srp={lookback} gamma={gamma}' if use_mean else f'srp={lookback} no_mean'
-        super(MeanVarianceStrategy, self).__init__(name, inds, timer=timer, rep=rep)
+        super(MeanVarianceStrategy, self).__init__(name, inds, timer=timer)
 
     def generate_weights(self, inputs: Dict):
         n_assets = inputs['n_assets']
@@ -130,7 +154,7 @@ class SimpleRiskParityStrategy(Strategy):
             idr.RollingCovariance('cov', lookback=lookback)
         ]
         timer = IntervalTimer('1w')
-        super(SimpleRiskParityStrategy, self).__init__(f'srp={lookback}', inds, timer=timer, rep=rep)
+        super(SimpleRiskParityStrategy, self).__init__(f'srp={lookback}', inds, timer=timer)
 
     def generate_weights(self, inputs: Dict):
         n_assets = inputs['n_assets']
@@ -157,7 +181,7 @@ class RiskParityStrategy(Strategy):
         self.w = None
 
         name = f'rp={lookback}'
-        super(RiskParityStrategy, self).__init__(name, inds, timer=timer, rep=rep)
+        super(RiskParityStrategy, self).__init__(name, inds, timer=timer)
 
     def setup_problem(self, n_assets):
         self.Q = cp.Parameter((n_assets, n_assets), PSD=True)
@@ -213,7 +237,7 @@ class TwoStageRiskParityStrategy(Strategy):
             idr.RateOfReturn('mom', lookback=lookback)
         ]
         timer = IntervalTimer('1w')
-        super(TwoStageRiskParityStrategy, self).__init__(f's2rp={lookback}', inds, timer=timer, rep=rep)
+        super(TwoStageRiskParityStrategy, self).__init__(f's2rp={lookback}', inds, timer=timer)
 
         self.w = None
         self.cov = None
