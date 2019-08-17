@@ -5,8 +5,10 @@ from pandas.tseries.offsets import BDay
 import cvxpy as cp
 import abc
 from typing import Dict, Iterable
+import time
 from .indicator import Indicator
 from . import indicator as idr
+from . import const
 
 
 class Timer(abc.ABC):
@@ -57,11 +59,15 @@ class Strategy(abc.ABC):
     def generate_weights(self, inputs: Dict):
         pass
 
-    def run(self, data: pd.DataFrame, inputs: Dict, max_leverage):
+    def run(self, data: pd.DataFrame, inputs: Dict, max_leverage, qout=None):
         T, n_assets = data.shape
         timestamps = data.index
         weights = np.zeros((T, n_assets))
+        size = T - self.lookback
 
+        start = time.time()
+        lap = start
+        update = 1  # 1s
         for idx in range(self.lookback + 1, T):
             if self.timer.is_up(timestamps[idx]):
                 current_inputs = {k.alias: inputs[k.name][idx - 1] for k in self.indicators}
@@ -79,6 +85,11 @@ class Strategy(abc.ABC):
 
             if leverage > max_leverage:
                 raise RuntimeError(f'leverage is {leverage: .5f}')
+
+            now = time.time()
+            if qout is not None and now - lap > update:
+                qout.put((const.Msg.PROGRESS, (self.name, idx / size)))
+                lap = now
 
         return weights
 

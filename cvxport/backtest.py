@@ -1,10 +1,10 @@
 
 import pandas as pd
 import numpy as np
-from multiprocessing import Pool
-from typing import Iterable
-import time
-from . import utils
+import multiprocessing as mp
+from typing import List
+import traceback
+from . import utils, const
 from .strategy import Strategy
 
 
@@ -56,22 +56,45 @@ class ResultSet:
         return dd
 
 
-def task(_args):
-    _start = time.time()
-    _strategy, _data, _inputs, _max_lev = _args
-    weights = _strategy.run(_data, _inputs, _max_lev)
-    print(f'{_strategy.name} finished [{time.time() - _start: 5.1f}s]')
-    return _strategy.name, _strategy.lookback, weights
-
-
 class BackTester:
-    def __init__(self, data: pd.DataFrame, strategies: Iterable[Strategy], config=None):
+    def __init__(self, data: pd.DataFrame, strategies: List[Strategy], config=None):
         self.data = data
         self.strategies = strategies
         self.indicators = list(set(sum([p.indicators for p in strategies], [])))
-        self.config = {'leverage': 1} if config is None else config
+        self.config = {'leverage': 1, 'pool': mp.cpu_count() - 1} if config is None else config
+        self.progresses = {strategy.name: 0 for strategy in self.strategies}
+
+    @classmethod
+    def run_remote_backtest(cls, pid, qin: mp.Queue, qout: mp.Queue):
+        qout.put((const.Msg.START, pid))
+        while True:
+            msg_type, msg_data = qin.get()
+            if msg_type == const.Msg.END:
+                break
+
+            if msg_type != const.Msg.INPUT:
+                print(f'Unrecognized message type {msg_type}')
+
+            strategy, data, inputs, max_lev = msg_data
+            try:
+                weights = strategy.run(data, inputs, max_lev, qout=qout)
+                qout.put((const.Msg.RESULT, (strategy.name, strategy.lookback, weights)))
+            except:
+                qout.put((const.Msg.ERROR, (strategy.name, traceback.format_exc())))
+
+        qout.put((const.Msg.END, pid))
+
+    def print_progress(self, name, progress):
+        self.progresses[name] = progress
+        ls = [[k, v] for k, v in self.progresses.items()]
+        ls.sort(reverse=True, key=lambda x: x[1])
+        out = '| '.join([f'{x[0]}: {x[1]: 4.0%}' for x in ls])
+        print('\r' + out, end='')
 
     def run(self):
+        # reset progress
+        self.progresses = {strategy.name: 0 for strategy in self.strategies}
+
         # prepare indicators
         inputs = {}
         for indicator in self.indicators:
@@ -80,21 +103,42 @@ class BackTester:
         # main loop
         print('\nRunning')
         max_leverage = self.config['leverage'] + 1e-4
+        n_processors = min(self.config['pool'], len(self.strategies))
+
         result = ResultSet(self.data)
+        qin = mp.Queue()
+        qout = mp.Queue()
+        processes = []
+        for pid in range(n_processors):
+            process = mp.Process(target=BackTester.run_remote_backtest, args=(pid, qin, qout))
+            process.start()
+            processes.append(process)
 
-        batches = [[x, self.data, inputs, max_leverage] for x in self.strategies]
-        with Pool(processes=3) as p:
-            result_all = p.map(task, batches)
+        for strategy in self.strategies:
+            qin.put((const.Msg.INPUT, (strategy, self.data, inputs, max_leverage)))
 
-        for res in result_all:
-            name, lb, wgts = res
-            result.add_performance(name, lb, wgts)
+        for _ in range(n_processors):
+            qin.put((const.Msg.END, ()))
 
-        # for strategy in self.strategies:
-        #     print(f'{strategy.name}: ', end='')
-        #     weights = strategy.run(self.data, inputs, max_leverage)
-        #     result.add_performance(strategy.name, strategy.lookback, weights)
-        #     print('done')
+        counter = n_processors
+        while counter:
+            msg_type, msg_data = qout.get()
+            if msg_type == const.Msg.PROGRESS:
+                self.print_progress(msg_data[0], msg_data[1])
+            elif msg_type == const.Msg.RESULT:
+                result.add_performance(msg_data[0], msg_data[1], msg_data[2])
+                self.print_progress(msg_data[0], 1)
+                print(f'\r{msg_data[0]} result received')
+            elif msg_type == const.Msg.START:
+                print(f'\rProcess {msg_data} started')
+            elif msg_type == const.Msg.ERROR:
+                print(f'\r{msg_data[0]} error: {msg_data[1]}')
+            elif msg_type == const.Msg.END:
+                print(f'\rProcess {msg_data} returned')
+                counter -= 1
+
+        for process in processes:
+            process.join()
 
         print()
         return result
