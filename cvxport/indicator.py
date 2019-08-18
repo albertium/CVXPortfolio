@@ -11,7 +11,7 @@ class Indicator(abc.ABC):
         self.lookback = lookback
 
     @abc.abstractmethod
-    def process(self, data: pd.DataFrame) -> np.ndarray:
+    def process(self, inputs: dict) -> np.ndarray:
         pass
 
     def __eq__(self, other):
@@ -33,7 +33,8 @@ class RollingCovariance(Indicator):
     def __init__(self, name, lookback=90):
         super(RollingCovariance, self).__init__(f'roll_cov={lookback}', alias=name, lookback=lookback)
 
-    def process(self, data: pd.DataFrame) -> np.ndarray:
+    def process(self, inputs: dict) -> np.ndarray:
+        data = inputs['ret']
         n_cols = data.shape[1]
         return data.rolling(window=self.lookback).cov().values.reshape(-1, n_cols, n_cols)
 
@@ -53,8 +54,8 @@ class RateOfReturn(Indicator):
         self.standardized = standardized
         super(RateOfReturn, self).__init__(f'roc={lookback}', alias=name, lookback=lookback)
 
-    def process(self, data: pd.DataFrame) -> np.ndarray:
-        ind = (data + 1).cumprod().pct_change(periods=self.lookback).values
+    def process(self, inputs: dict) -> np.ndarray:
+        ind = inputs['close'].pct_change(periods=self.lookback).values
         if self.standardized:
             return (ind - np.mean(ind, axis=1, keepdims=True)) / np.std(ind, axis=1, keepdims=True)
         return ind

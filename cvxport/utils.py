@@ -13,31 +13,37 @@ def get_prices_loader(config):
         # read data and pre-process
         root = config['Default']['data_root']
         tickers = config['Data Map'][asset].split(',')
-        data = []
+        data = {}
         for ticker in tickers:
-            tmp = pd.read_csv('%s/%s.csv' % (root, ticker), parse_dates=['Date'], index_col=0)[' Close']
-            data.append(tmp.rename(asset).pct_change().dropna())
+            panel = pd.read_csv('%s/%s.csv' % (root, ticker), parse_dates=['Date'], index_col=0)
+            panel = panel.rename(lambda x: x.strip().lower(), axis=1)
+            for col in ['open', 'high', 'low', 'close']:
+                data.setdefault(col, []).append(panel[col].rename(asset).dropna())
 
         # splice series if needed
-        if len(data) == 2:
-            last_date = data[1].first_valid_index() - pd.Timedelta('1d')
-            data[0] = pd.concat([data[0][: last_date], data[1]])
+        if len(tickers) == 2:
+            last_date = data['close'][1].first_valid_index()
+            adj_ratio = data['close'][1][0] / data['close'][0][last_date]  # adjustment based on closed price
+            for col, series in data.items():
+                data[col] = [pd.concat([series[0][: last_date - pd.Timedelta('1d')] * adj_ratio, series[1]])]
 
-        return data[0]
+        return {k: v[0] for k, v in data.items()}
 
     return loader
 
 
-def get_price_returns(assets, config_name='config') -> pd.DataFrame:
+def get_prices(assets, config_name='config') -> pd.DataFrame:
     config = configparser.ConfigParser()
     config.read(config_name)
     loader = get_prices_loader(config)
 
-    ts = []
+    ts = {}
     for asset in assets:
-        ts.append(loader(asset))
+        data = loader(asset)
+        for col, series in data.items():
+            ts.setdefault(col, []).append(series)
 
-    return pd.concat(ts, axis=1, join='inner')
+    return {col: pd.concat(series, axis=1, join='inner') for col, series in ts.items()}
 
 
 def plot_area(title, dfs: [list, pd.DataFrame]):

@@ -3,7 +3,7 @@ import riskparity
 
 
 assets = ['eq_us', 'eq_exus', 'eq_em', 'tn_us', 'tb_us', 'bond_em', 'reit']
-rets = utils.get_price_returns(assets)
+rets = utils.get_prices(assets)
 print('Last update: %s' % rets.last_valid_index())
 # utils.plot_returns(rets)
 

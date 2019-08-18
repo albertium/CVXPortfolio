@@ -4,8 +4,8 @@ import cvxport as xp
 
 if __name__ == '__main__':
     assets = ['eq_us', 'eq_exus', 'eq_em', 'tn_us', 'tb_us', 'bond_em', 'reit']
-    rets = utils.get_price_returns(assets)
-    print('Last update: %s' % rets.last_valid_index())
+    prices = utils.get_prices(assets)
+    print('Last update: %s' % prices['close'].last_valid_index())
 
     strats = [
         # xp.strategy.InverseVolatilityStrategy(),
@@ -15,7 +15,7 @@ if __name__ == '__main__':
         # xp.strategy.MeanVarianceStrategy(rep=1),
         # xp.strategy.EqualWeightStrategy()
     ]
-    backtester = xp.BackTester(rets, strats)
+    backtester = xp.BackTester(prices, strats)
     result = backtester.run()
     result.show()
     result.plot(True)

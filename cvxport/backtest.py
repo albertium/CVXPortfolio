@@ -75,7 +75,8 @@ class BackTester:
             if msg_type != const.Msg.INPUT:
                 print(f'Unrecognized message type {msg_type}')
 
-            strategy, data, inputs, max_lev = msg_data
+            strategy, inputs, max_lev = msg_data
+            data = inputs['ret']
             try:
                 weights = strategy.run(data, inputs, max_lev, qout=qout)
                 qout.put((const.Msg.RESULT, (strategy.name, strategy.lookback, weights)))
@@ -96,16 +97,16 @@ class BackTester:
         self.progresses = {strategy.name: 0 for strategy in self.strategies}
 
         # prepare indicators
-        inputs = {}
+        inputs = dict({'ret': self.data['close'].pct_change()}, **self.data)
         for indicator in self.indicators:
-            inputs[indicator.name] = indicator.process(self.data)
+            inputs[indicator.name] = indicator.process(inputs)
 
         # main loop
         print('\nRunning')
         max_leverage = self.config['leverage'] + 1e-4
         n_processors = min(self.config['pool'], len(self.strategies))
 
-        result = ResultSet(self.data)
+        result = ResultSet(inputs ['ret'])
         qin = mp.Queue()
         qout = mp.Queue()
         processes = []
@@ -115,7 +116,7 @@ class BackTester:
             processes.append(process)
 
         for strategy in self.strategies:
-            qin.put((const.Msg.INPUT, (strategy, self.data, inputs, max_leverage)))
+            qin.put((const.Msg.INPUT, (strategy, inputs, max_leverage)))
 
         for _ in range(n_processors):
             qin.put((const.Msg.END, ()))
