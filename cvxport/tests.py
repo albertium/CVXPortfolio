@@ -74,6 +74,18 @@ class TestResult(unittest.TestCase):
         self.assertTrue(np.all(res.equity == capital))
         self.assertEqual(np.sum(res.traded_shares), 250)
 
+        # test nan
+        weights = np.random.rand(n_samples).reshape(-1, 1)
+        weights[1::2] = np.nan
+        costs = {'spreads': np.array([0]), 'comm': 0, 'delay': 0}
+        res = backtest.Result('test', weights, lookback=0, inputs=inputs, capital=capital, costs=costs)
+        self.assertTrue(np.all(res.traded_shares[1::2] == 0))
+        self.assertTrue(np.all(res.equity == capital))
+        cash = res.cash.values
+        pos = res.total_shares.values
+        self.assertTrue(np.all(cash[0::2] == cash[1::2]))
+        self.assertTrue(np.all(pos[0::2] == pos[1::2]))
+
 
 if __name__ == '__main__':
     unittest.main()

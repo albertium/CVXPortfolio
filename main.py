@@ -25,7 +25,8 @@ inputs['high'] = pd.DataFrame(np.max(price, axis=1), columns=['ABC'], index=bday
 inputs['low'] = pd.DataFrame(np.min(price, axis=1), columns=['ABC'], index=bdays)
 inputs['close'] = pd.DataFrame(price[:, -1], columns=['ABC'], index=bdays)
 
-buy_and_hold = np.ones(n_samples).reshape(-1, 1)
+weights = np.random.rand(n_samples).reshape(-1, 1)
+weights[1::2] = np.nan
 costs = {'spreads': np.array([0]), 'comm': 0, 'delay': 0}
-res = backtest.Result('test', buy_and_hold, lookback=0, inputs=inputs, capital=50000, costs=costs)
+res = backtest.Result('test', weights, lookback=0, inputs=inputs, capital=50000, costs=costs)
 print(res.stats)

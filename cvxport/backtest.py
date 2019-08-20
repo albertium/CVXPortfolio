@@ -30,6 +30,7 @@ class Result:
 
         # records
         self.equity = None
+        self.cash = None
         self.slippage_cost = None
         self.spread_cost = None
         self.comm_cost = None
@@ -51,9 +52,9 @@ class Result:
         traded_shares = np.zeros(self.T)
         equity = np.zeros(self.T)
         for idx in range(self.lookback, self.T):
+            prev_idx = idx - 1
             # if need re-balance
-            if self.weights[idx][0] != np.nan:
-                prev_idx = idx - 1
+            if not np.isnan(self.weights[idx][0]):
                 opening = self.open[idx]
                 curr_capital = cash[prev_idx] + positions[prev_idx].dot(opening)  # opening capital
                 pos_deltas = np.fix(curr_capital * self.weights[idx] / opening - positions[prev_idx])
@@ -68,10 +69,12 @@ class Result:
                 positions[idx] = positions[prev_idx] + pos_deltas
                 equity[idx] = cash[idx] + positions[idx].dot(self.close[idx])
             else:
-                cash[idx] = cash[idx - 1]
+                cash[idx] = cash[prev_idx]
+                positions[idx] = positions[prev_idx]
                 equity[idx] = cash[idx] + positions[idx].dot(self.close[idx])
 
         self.equity = pd.Series(data=equity, index=self.index, name=self.name)
+        self.cash = pd.Series(data=cash, index=self.index, name=self.name)
         self.slippage_cost = pd.Series(data=slippage, index=self.index, name=self.name)
         self.spread_cost = pd.Series(data=spread_cost, index=self.index, name=self.name)
         self.comm_cost = pd.Series(data=comm, index=self.index, name=self.name)
