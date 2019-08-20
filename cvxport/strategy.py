@@ -62,7 +62,7 @@ class Strategy(abc.ABC):
     def run(self, data: pd.DataFrame, inputs: Dict, max_leverage, qout=None):
         T, n_assets = data.shape
         timestamps = data.index
-        weights = np.zeros((T, n_assets))
+        weights = np.empty((T, n_assets)).fill(np.nan)
         size = T - self.lookback
 
         start = time.time()

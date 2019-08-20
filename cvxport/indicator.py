@@ -25,8 +25,8 @@ class RollingVolatility(Indicator):
     def __init__(self, name, lookback=90):
         super(RollingVolatility, self).__init__('roll_vol=%d' % lookback, alias=name, lookback=lookback)
 
-    def process(self, data: pd.DataFrame):
-        return data.rolling(window=self.lookback).std().to_numpy()
+    def process(self, inputs):
+        return inputs['ret'].rolling(window=self.lookback).std().to_numpy()
 
 
 class RollingCovariance(Indicator):

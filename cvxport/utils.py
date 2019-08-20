@@ -32,7 +32,7 @@ def get_prices_loader(config):
     return loader
 
 
-def get_prices(assets, config_name='config') -> pd.DataFrame:
+def get_prices(assets, config_name='config') -> dict:
     config = configparser.ConfigParser()
     config.read(config_name)
     loader = get_prices_loader(config)

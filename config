@@ -9,3 +9,22 @@ tn_us = VFITX,IEF
 tb_us = VUSTX,TLT
 bond_em = PREMX,EMB
 reit = VGSIX,VNQI
+
+[Account]
+capital = 50000
+comm = 0.005
+use_spread = 1
+use_comm = 1
+delay = 15
+funding = 0.02
+borrowing = 0.03
+
+[Spreads]
+VTI = 0.01
+VEA = 0.02
+VWO = 0.02
+IEF = 0.01
+TLT = 0.01
+EMB = 0.01
+VNQI = 0.01
+DEFAULT = 0.02
