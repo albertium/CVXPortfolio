@@ -1,5 +1,5 @@
 from cvxport import utils
-import riskparity
+import rw_portfolio
 import numpy as np
 import pandas as pd
 from cvxport import backtest

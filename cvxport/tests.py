@@ -84,7 +84,7 @@ class TestResult(unittest.TestCase):
         cash = res.cash.values
         pos = res.total_shares.values
         self.assertTrue(np.all(cash[0::2] == cash[1::2]))
-        self.assertTrue(np.all(pos[0::2] == pos[1::2]))
+        self.assertTrue(np.all(pos[0::2] == pos [1::2]))
 
 
 if __name__ == '__main__':

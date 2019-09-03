@@ -3,9 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="d301dab5-55d1-4fdf-9ac9-8aed0a22cfce" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvxport/backtest.py" beforeDir="false" afterPath="$PROJECT_DIR$/cvxport/backtest.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cvxport/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/cvxport/tests.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/riskparity.py" beforeDir="false" afterPath="$PROJECT_DIR$/rw_portfolio.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -160,7 +160,14 @@
       <option name="project" value="LOCAL" />
       <updated>1566273568975</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Fix for dealing with nan weight">
+      <created>1566275150387</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1566275150387</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -178,16 +185,12 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Use shares instead of weights. Add unittest" />
-    <option name="LAST_COMMIT_MESSAGE" value="Use shares instead of weights. Add unittest" />
+    <MESSAGE value="Fix for dealing with nan weight" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix for dealing with nan weight" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/riskparity.py</url>
-          <line>24</line>
-          <option name="timeStamp" value="9" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/test.py</url>
           <line>8</line>
