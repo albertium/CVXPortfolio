@@ -46,6 +46,20 @@ def get_prices(assets, config_name='config') -> dict:
     return {col: pd.concat(series, axis=1, join='inner') for col, series in ts.items()}
 
 
+def get_prices2(tickers, root_dir, start_date=None, end_date=None) -> dict:
+    """
+    to replace get_prices
+    """
+    ts = {}
+    for ticker in tickers:
+        panel = pd.read_csv(f'{root_dir}/{ticker}.csv', parse_dates=['Date'], index_col=0)
+        panel = panel.rename(lambda x: x.strip().lower(), axis=1).loc[start_date: end_date]
+        for col, series in panel.items():  # open, high, low, close
+            ts.setdefault(col, []).append(series.rename(ticker))
+
+    return {col: pd.concat(series, axis=1, join='inner') for col, series in ts.items()}
+
+
 def plot_area(title, dfs: [list, pd.DataFrame]):
     if isinstance(dfs, pd.DataFrame):
         dfs = [dfs]
@@ -62,7 +76,9 @@ def plot_area(title, dfs: [list, pd.DataFrame]):
     fig.show()
 
 
-def plot_lines(df):
+def plot_lines(df: pd.DataFrame, normalize=False):
+    if normalize:
+        df = df.div(df.iloc[0], axis=1)
     fig = go.Figure()
     for col in df.columns:
         fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col))

@@ -3,9 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="d301dab5-55d1-4fdf-9ac9-8aed0a22cfce" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cvxport/tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/cvxport/tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/riskparity.py" beforeDir="false" afterPath="$PROJECT_DIR$/rw_portfolio.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cvxport/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/cvxport/utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/rw_portfolio.py" beforeDir="false" afterPath="$PROJECT_DIR$/rw_portfolio.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -50,7 +49,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python tests.pytest for cvxport.tests.TestResult.test_single_asset_position">
+  <component name="RunManager" selected="Python.rw_portfolio">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="CVXPortfolio" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -64,6 +63,27 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="rw_portfolio" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="CVXPortfolio" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/rw_portfolio.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -117,28 +137,13 @@
       <option name="_new_targetType" value="&quot;PYTHON&quot;" />
       <method v="2" />
     </configuration>
-    <configuration name="pytest in tests.py" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
-      <module name="CVXPortfolio" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="_new_keywords" value="&quot;&quot;" />
-      <option name="_new_additionalArguments" value="&quot;&quot;" />
-      <option name="_new_target" value="&quot;$PROJECT_DIR$/cvxport/tests.py&quot;" />
-      <option name="_new_targetType" value="&quot;PATH&quot;" />
-      <method v="2" />
-    </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.rw_portfolio" />
         <item itemvalue="Python tests.pytest for cvxport.tests.TestResult.test_single_asset_position" />
         <item itemvalue="Python.main" />
         <item itemvalue="Python tests.pytest for cvxport.tests.TestResult.test_performance_cost_calculation" />
         <item itemvalue="Python tests.pytest for cvxport.tests.TestResult.test_performance_calculation" />
-        <item itemvalue="Python tests.pytest in tests.py" />
       </list>
     </recent_temporary>
   </component>
@@ -167,7 +172,14 @@
       <option name="project" value="LOCAL" />
       <updated>1566275150387</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="save before changing price loading for rw_portfolio. We should separate &#10;price loading and splicing">
+      <created>1567471290683</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1567471290683</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -186,7 +198,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Use shares instead of weights. Add unittest" />
     <MESSAGE value="Fix for dealing with nan weight" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix for dealing with nan weight" />
+    <MESSAGE value="save before changing price loading for rw_portfolio. We should separate &#10;price loading and splicing" />
+    <option name="LAST_COMMIT_MESSAGE" value="save before changing price loading for rw_portfolio. We should separate &#10;price loading and splicing" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -210,6 +223,16 @@
           <url>file://$PROJECT_DIR$/main.py</url>
           <line>31</line>
           <option name="timeStamp" value="36" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/cvxport/utils.py</url>
+          <line>79</line>
+          <option name="timeStamp" value="40" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/rw_portfolio.py</url>
+          <line>55</line>
+          <option name="timeStamp" value="49" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
